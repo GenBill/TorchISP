@@ -24,7 +24,7 @@ pip install git+https://github.com/cheind/pytorch-debayer
 
 To install `TorchISP`:
 ```bash
-pip install git+https://github.com/GenBill/TorchISP.git
+pip install torchisp
 ```
 
 

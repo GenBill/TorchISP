@@ -22,9 +22,9 @@ TorchISP 是一个基于 PyTorch 的开源库，用于从 4 通道 RGGB 图像�
 pip install git+https://github.com/cheind/pytorch-debayer
 ```
 
-安装 `TorchISP`:
+安装 `TorchISP`：
 ```bash
-pip install git+https://github.com/GenBill/TorchISP.git
+pip install torchisp
 ```
 
 
