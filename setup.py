@@ -2,16 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name='torchisp',
-    version='0.1.0',
+    version='0.1.1',
     description='A PyTorch-based image signal processing tool for converting RGGB to RGB images.',
     author='GenBill',
     author_email='genbill97@gmail.com',
     url='https://github.com/GenBill/TorchISP',
     packages=find_packages(),
-    install_requires=[
-        'torch',
-        'pytorch-debayer @ git+https://github.com/cheind/pytorch-debayer'
-    ],
+    install_requires=[],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
