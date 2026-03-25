@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from torchisp.constants import NUMERIC_FLOOR
 
 class RGB2RGGB(nn.Module):
     def __init__(self, rgb_gain=(2.0, 1.0, 2.0), device='cuda'):
@@ -14,10 +15,9 @@ class RGB2RGGB(nn.Module):
              [-0.063, -0.852, 1.914]], device=device).inverse()
 
     def seq_rgb_inv_isp_2_rggb(self, batch_rgb_01: torch.Tensor):
-        # Removed unnecessary constant and simplified the code
-        batch_rgb_01 = batch_rgb_01 ** 2.2
-        
-        # Utilize batch processing to avoid Python loop over batch size
+        batch_rgb_01 = batch_rgb_01.clamp(NUMERIC_FLOOR, 1.0) ** 2.2
+        batch_rgb_01 = batch_rgb_01.clamp(min=NUMERIC_FLOOR)
+
         batch_rggb = self.seq_rgb_2_rggb(batch_rgb_01)
         
         return batch_rggb
@@ -25,9 +25,10 @@ class RGB2RGGB(nn.Module):
     def seq_rgb_2_rggb(self, batch_linear_rgb: torch.Tensor):
         # Apply inverse CCM using batch matrix multiplication
         batch_linear_rgb = torch.matmul(batch_linear_rgb.permute(0, 2, 3, 1), self.ccm_inv.T).permute(0, 3, 1, 2)
-        
-        # Upsample using bilinear interpolation
+        batch_linear_rgb = batch_linear_rgb.clamp(min=NUMERIC_FLOOR)
+
         batch_linear_rgb = F.interpolate(batch_linear_rgb, scale_factor=2.0, mode='bilinear')
+        batch_linear_rgb = batch_linear_rgb.clamp(min=NUMERIC_FLOOR)
         
         # Random offsets for downsampling to simulate the Bayer pattern
         scale = 2
@@ -52,5 +53,5 @@ class RGB2RGGB(nn.Module):
             raise ValueError("Input must have shape (N, 3, H, W)")
         
         raw = self.seq_rgb_inv_isp_2_rggb(img)
-        return raw.clamp(0, 1)
+        return raw.clamp(NUMERIC_FLOOR, 1.0)
     

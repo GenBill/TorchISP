@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 from debayer import Debayer5x5
+from torchisp.constants import NUMERIC_FLOOR
 
 class RGGB2RGB(nn.Module):
     def __init__(self, dgain=1.0, device='cuda') -> None:
@@ -50,11 +51,11 @@ class RGGB2RGB(nn.Module):
         else:
             r_gain, b_gain = self.r_gain, self.b_gain
         
-        rggb2 = self.wb_gain(rggb*self.dgain, r_gain, b_gain).clamp(0.0, 1.0)
+        rggb2 = self.wb_gain(rggb*self.dgain, r_gain, b_gain).clamp(NUMERIC_FLOOR, 1.0)
         bayer = self.pixelshuffle(rggb2)
-        rgb = self.Debayer(bayer).clamp(0.0, 1.0)
+        rgb = self.Debayer(bayer).clamp(NUMERIC_FLOOR, 1.0)
         
-        rgb = self.ccm(rgb).clamp(0.0, 1.0)
+        rgb = self.ccm(rgb).clamp(NUMERIC_FLOOR, 1.0)
         rgb = torch.pow(rgb, 1/2.2)
         
         return rgb

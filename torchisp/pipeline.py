@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 from debayer import Debayer5x5
+from torchisp.constants import NUMERIC_FLOOR
 from torchisp.module import SimpleCCM, GrayWorldWB
 
 class ISP(nn.Module):
@@ -25,14 +26,14 @@ class ISP(nn.Module):
 
     def forward(self, rggb):
 
-        rggb2 = self.wbcFunc(rggb, self.r_gain, self.b_gain)
-        
+        rggb2 = self.wbcFunc(rggb, self.r_gain, self.b_gain).clamp(min=NUMERIC_FLOOR)
+
         # Debayer
         bayer = self.pixelshuffle(rggb2)
-        rgb = self.Debayer(bayer).clamp(0.0, 1.0)
+        rgb = self.Debayer(bayer).clamp(NUMERIC_FLOOR, 1.0)
         
         # CCM
-        rgb = self.ccmFunc(rgb).clamp(0.0, 1.0)
+        rgb = self.ccmFunc(rgb).clamp(NUMERIC_FLOOR, 1.0)
         
         # Gamma
         rgb = torch.pow(rgb, 1.0/self.gamma)

@@ -4,6 +4,7 @@
 
 import torch
 import torch.nn as nn
+from torchisp.constants import NUMERIC_FLOOR
 
 class RawSolver(nn.Module):
     """
@@ -22,9 +23,9 @@ class RawSolver(nn.Module):
     
     def auto_clip(self):
         """
-        Clamps the parameter values to the range [1e-6, 1] to ensure valid pixel values.
+        Clamps the parameter values to [NUMERIC_FLOOR, 1] to avoid exact zeros.
         """
-        self.params.data = self.params.data.clamp(1e-6, 1)
+        self.params.data = self.params.data.clamp(NUMERIC_FLOOR, 1.0)
 
     def forward(self):
         return self.params

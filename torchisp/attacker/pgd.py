@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from torchisp.constants import NUMERIC_FLOOR
 
 def _model_freeze(model) -> None:
     for param in model.parameters():
@@ -55,7 +56,7 @@ class TargetLinfPGD():
 
         if self.rand_init:
             x_adv = x_adv + torch.empty_like(x_adv).uniform_(-self.eps, self.eps)
-            x_adv = torch.clamp(x_adv, 0.0, 1.0)
+            x_adv = torch.clamp(x_adv, NUMERIC_FLOOR, 1.0)
 
         for _ in range(self.nb_iter):
             x_adv.requires_grad_()
@@ -71,6 +72,6 @@ class TargetLinfPGD():
             eta = self.eps_iter * x_adv.grad.sign()
             x_adv = x_adv.detach() - eta
             x_adv = torch.min(torch.max(x_adv, data - self.eps), data + self.eps)
-            x_adv = torch.clamp(x_adv, 0.0, 1.0)
+            x_adv = torch.clamp(x_adv, NUMERIC_FLOOR, 1.0)
 
         return x_adv
