@@ -19,19 +19,31 @@ class InvISP(nn.Module):
     - eps_iter (float): Maximum perturbation step for each iteration (default: 4/255).
     - device (str): Device to run the computations on (default: 'cuda').
     """
-    def __init__(self, loss_fn, rggb2rgb, lr=1e-4, nb_iter=1000, eps_iter=4/255, device='cuda'):
+    def __init__(self, loss_fn, rggb2rgb, lr=1e-4, nb_iter=1000, eps_iter=4/255, 
+        device='cuda', whitelevel=65535, blacklevel=4096
+    ) -> None:
         super(InvISP, self).__init__()
         self.device = device
+        self.whitelevel = whitelevel
+        self.blacklevel = blacklevel
         self.nb_iter = nb_iter
         self.lr = lr
         self.eps_iter = eps_iter
         self.loss_fn = loss_fn
         self.rggb2rgb = rggb2rgb
         
-        # attacker initialization
-        self.attacker = AdamPGD(predict=self.rggb2rgb, loss_fn=self.loss_fn, lr=self.lr, nb_iter=self.nb_iter, eps_iter=self.eps_iter)
+        # AdamPGD optimizes in [0,1] RGGB; ISP must not run normalize() on that tensor again.
+        def predict_no_norm(x):
+            return self.rggb2rgb(x, apply_normalize=False)
+        self.attacker = AdamPGD(predict=predict_no_norm, loss_fn=self.loss_fn, lr=self.lr, nb_iter=self.nb_iter, eps_iter=self.eps_iter)
         # self.attacker = TargetLinfPGD(predict=self.rggb2rgb, loss_fn=self.loss_fn, nb_iter=self.nb_iter, eps_iter=self.eps_iter)
 
+    def normalize(self, rggb):
+        return (rggb - self.blacklevel) / (self.whitelevel - self.blacklevel)
+    
+    def denormalize(self, rggb):
+        return rggb * (self.whitelevel - self.blacklevel) + self.blacklevel
+    
     def forward(self, rgb):
         """
         Reconstruct the RGGB RAW image from an RGB image using the inverse ISP.
@@ -49,19 +61,24 @@ class InvISP(nn.Module):
         
         # Use AdamPGD to optimize from the zero-initialization
         rggb_optimized = self.attacker.perturb(rggb_init, rgb)
+
+        rggb_optimized = self.denormalize(rggb_optimized)
         
         return rggb_optimized
 
 # Example usage
 if __name__ == "__main__":
     loss_fn = nn.MSELoss()
-    rggb2rgb = lambda x: x  # Placeholder function, replace with real rggb2rgb implementation
+
+    def rggb2rgb(x, apply_normalize=False):  # signature matches ISP for InvISP inner predict
+        return x
+    
     lr = 1e-4
-    nb_iter = 500
-    eps_iter = 4/255
+    nb_iter = 1000
+    eps_iter = 2/255
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    model = InvISP(loss_fn=loss_fn, rggb2rgb=rggb2rgb, lr=lr, nb_iter=nb_iter, eps_iter=eps_iter, device=device)
+    model = InvISP(loss_fn=loss_fn, rggb2rgb=rggb2rgb, lr=lr, nb_iter=nb_iter, eps_iter=eps_iter, device=device, whitelevel=65535, blacklevel=4096)
     
     # Placeholder RGB image tensor with batch size of 1
     rgb_image = torch.rand((1, 3, 256, 256), device=device)

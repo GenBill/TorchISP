@@ -9,12 +9,12 @@ if __name__ == '__main__':
     datapath = 'rawdata/0000.raw'
 
     device = 'cuda'
-    rggb2rgb = ISP(device=device)
+    rggb2rgb = ISP(device=device, whitelevel=65535, blacklevel=4096)
 
     # rggb_img = torch.randn(1, 4, 256, 256).to(device)
     rggb_img = dataloader.get_raw16(datapath).to(device)
 
-    rgb_img = rggb2rgb(rggb_img)
+    rgb_img = rggb2rgb(rggb_img, apply_normalize=False)
 
     print(rgb_img.shape)
     save_image(rgb_img, 'outputs/test_PPL.png')

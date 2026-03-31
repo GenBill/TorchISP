@@ -37,10 +37,10 @@ from torchisp import RawLoader, ISP, InvISP
 
 device = 'cpu'
 # rggb2rgb = RGGB2RGB(device=device)
-rggb2rgb = ISP(device=device)
+rggb2rgb = ISP(device=device, whitelevel=65535, blacklevel=4096)
 
 # Input 4-channel RGGB image
-rggb_img = torch.randn(1, 4, 256, 256).to(device)
+rggb_img = (torch.rand(1, 4, 256, 256) * (65535 - 4096) + 4096).to(device)
 # rggb_img = RawLoader()('your_raw_saved_as_uint16_numpy_bin').to(device)
 
 # Convert to RGB image
@@ -60,15 +60,16 @@ device = 'cuda'
 rgb_path = 'rawdata/lsdir_1000.png'
 rgb_img = RGBLoader()(rgb_path).to(device)
 
-rggb2rgb = ISP(device=device)
+rggb2rgb = ISP(device=device, whitelevel=65535, blacklevel=4096)
 # Recommended to fix wbgain for stable effect
 rggb2rgb.r_gain, rggb2rgb.b_gain = 2.0, 2.0
 
 loss_fn = nn.L1Loss() # nn.MSELoss()
 inv_isp = InvISP(loss_fn, rggb2rgb, device=device,
     lr = 1e-4, 
-    nb_iter = 16000,
-    eps_iter = 16 / 255,
+    nb_iter = 1000,
+    eps_iter = 2/255, 
+    whitelevel=65535, blacklevel=4096
 )
 
 rggb_img = inv_isp(rgb_img)
