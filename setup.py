@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='torchisp',
-    version='0.1.2',
+    version='0.1.3',
     description='A PyTorch-based image signal processing tool for converting RGGB to RGB images.',
     author='GenBill',
     author_email='genbill97@gmail.com',

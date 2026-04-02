@@ -1,8 +1,9 @@
-import torch
+# import torch
 import torch.nn as nn
 from torchisp.pipeline import ISP
 from torchisp.inverse_pipeline import InvISP
 from torchisp.dataloader import RGBLoader
+from torchisp.dataloader import save_raw4_as_bayer
 from torchvision.utils import save_image
 
 if __name__ == '__main__':
@@ -26,4 +27,5 @@ if __name__ == '__main__':
 
     rgb_img2 = rggb2rgb(rggb_img)
     save_image(rgb_img2, 'outputs/lsdir_1000_output.png')
+    save_raw4_as_bayer(rggb_img, 'outputs/lsdir_1000_output.raw')
 

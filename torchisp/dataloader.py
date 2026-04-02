@@ -3,6 +3,42 @@ import numpy as np
 import torch
 from PIL import Image
 
+
+def raw4_to_uint16_bayer(
+    raw4,
+    blacklevel=4096,
+    whitelevel=65535,
+    normalized=False,
+):
+    """
+    将 RGGB 四通道 raw4 还原为 uint16 Bayer 平面 (H, W)，与 RawLoader.get_raw16 互逆。
+
+    raw4: torch.Tensor，形状 (B, 4, H/2, W/2) 或 (4, H/2, W/2)。通常为 InvISP.forward 的输出
+    （已为传感器计数 float，此时 normalized=False）。
+    若为 RawLoader.get_raw16 的归一化输出 [0,1]，设 normalized=True；whitelevel 需与加载时一致
+    （get_raw16 使用 65472 作为上端，应传 whitelevel=65472）。
+    """
+    x = raw4.detach().cpu().float() if isinstance(raw4, torch.Tensor) else torch.as_tensor(raw4).float()
+    if x.dim() == 4:
+        x = x[0]
+    if x.shape[0] != 4:
+        raise ValueError(f"raw4 通道数应为 4，当前为 {x.shape[0]}")
+    if normalized:
+        x = x * (float(whitelevel) - float(blacklevel)) + float(blacklevel)
+    x = x.clamp(0, 65535).numpy()
+    x = np.rint(x).astype(np.uint16)
+    _, h2, w2 = x.shape
+    rggb = np.transpose(x, (1, 2, 0)).reshape(h2, w2, 2, 2)
+    rggb = np.transpose(rggb, (0, 2, 1, 3))
+    return rggb.reshape(h2 * 2, w2 * 2)
+
+
+def save_raw4_as_bayer(raw4, save_path, **kwargs):
+    """将 raw4 转为 uint16 Bayer 并写入二进制文件（与 np.fromfile 读法一致）。"""
+    bayer = raw4_to_uint16_bayer(raw4, **kwargs)
+    bayer.tofile(save_path)
+
+
 class RawLoader():
     def __init__(self, H, W, bl=4096):
         self.H = H
