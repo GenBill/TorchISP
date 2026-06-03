@@ -178,7 +178,9 @@ def _import_librtprocess_backend(mode: str) -> Callable[[np.ndarray, str, int], 
     tensors, not DNG/ARW/NEF files. If a project supplies a compatible Python
     binding, it can expose ``amaze_demosaic(mosaic, pattern, max_value)`` and/or
     ``rcd_demosaic(mosaic, pattern, max_value)`` on a module named
-    ``librtprocess``.
+    ``librtprocess``. In practice, this means users must install or build a
+    compatible Python package themselves; TorchISP does not bundle or compile
+    RawTherapee/librtprocess.
     """
 
     try:
@@ -187,9 +189,10 @@ def _import_librtprocess_backend(mode: str) -> Callable[[np.ndarray, str, int], 
         raise ImportError(
             f"demosaic_mode='{mode}' requires a tensor-capable "
             "RawTherapee/librtprocess Python binding, which is not installed. "
-            "TorchISP does not silently fall back to OpenCV EA. Install a "
-            "compatible librtprocess binding exposing "
-            f"`{mode}_demosaic(mosaic, pattern, max_value)`, or use "
+            "TorchISP does not bundle this dependency; install or build a "
+            "compatible Python package yourself that exposes "
+            f"`{mode}_demosaic(mosaic, pattern, max_value)`. "
+            "TorchISP does not silently fall back to OpenCV EA; use "
             "demosaic_mode='opencv_ea' explicitly if OpenCV quality is acceptable."
         ) from exc
 
@@ -199,6 +202,7 @@ def _import_librtprocess_backend(mode: str) -> Callable[[np.ndarray, str, int], 
         raise RuntimeError(
             f"The installed librtprocess module does not expose `{function_name}`. "
             "TorchISP needs a tensor-capable demosaic function accepting "
-            "(mosaic, bayer_pattern, max_value)."
+            "(mosaic, bayer_pattern, max_value); install or build a compatible "
+            "Python binding/adapter for RawTherapee/librtprocess AMaZE/RCD."
         )
     return backend

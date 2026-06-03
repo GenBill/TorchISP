@@ -77,6 +77,17 @@ isp = ISP(demosaic_mode="amaze")
 isp = ISP(demosaic_mode="opencv_ea")
 ```
 
+### AMaZE/RCD optional dependency note
+
+`demosaic_mode="amaze"` and `demosaic_mode="rcd"` are adapter hooks, not bundled demosaic implementations. To use either mode today, you must install or build a Python package named `librtprocess` that can operate on TorchISP's in-memory packed Bayer tensors after they are converted to a 2D Bayer mosaic. The package is expected to expose:
+
+```python
+amaze_demosaic(mosaic, bayer_pattern, max_value)
+rcd_demosaic(mosaic, bayer_pattern, max_value)
+```
+
+TorchISP does not assume the input is a DNG/ARW/NEF file and does not invoke RawTherapee on a RAW file container. If this optional binding is unavailable, requesting `amaze` or `rcd` raises an error instead of silently falling back to OpenCV. Use `demosaic_mode="opencv_ea"` explicitly if the OpenCV Edge-Aware fallback is acceptable for your preview workflow.
+
 ## Inverse ISP
 ```python
 import torch
