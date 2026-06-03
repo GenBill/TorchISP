@@ -50,6 +50,45 @@ print(rgb_img.shape)
 ```
 
 
+## Demosaic modes（去马赛克模式）
+
+TorchISP 现在可以在 `ISP` pipeline 中选择不同的 demosaic mode。输入仍然是现有的 4 通道 Bayer packed tensor。默认 `bayer_pattern="RGGB"` 时，通道顺序解释为 2x2 tile 的 row-major 顺序：`R, G1, G2, B`。
+
+- `debayer5x5`：默认 PyTorch demosaic backend，保持原有行为，并且仍然适合需要 torch 流程/梯度的场景。
+- `amaze`：面向高质量视觉预览/展示图的 AMaZE demosaic adapter。该模式不是内置实现，需要额外安装或自行编译/封装 tensor-capable 的 RawTherapee/librtprocess Python binding。请求该模式时，TorchISP 不会静默 fallback 到 OpenCV。
+- `rcd`：可选的高质量 RCD demosaic adapter，与 `amaze` 一样需要额外的 tensor-capable librtprocess Python binding。
+- `opencv_ea`：可选 OpenCV Edge-Aware fallback backend。使用前需安装 `opencv-python` 或 `opencv-python-headless`。
+
+默认模式仍然是 `debayer5x5`，所以现有 `ISP(...)` 调用保持不变。
+
+```python
+from torchisp import ISP
+
+# 默认行为，与之前相同
+isp = ISP()
+
+# 显式使用默认 PyTorch backend
+isp = ISP(demosaic_mode="debayer5x5")
+
+# 高质量预览 backend；需要 compatible librtprocess binding
+isp = ISP(demosaic_mode="amaze")
+
+# 可选 OpenCV Edge-Aware fallback
+isp = ISP(demosaic_mode="opencv_ea")
+```
+
+### AMaZE/RCD 可选依赖说明
+
+是的，当前 `demosaic_mode="amaze"` / `demosaic_mode="rcd"` 需要你安装或自行编译/封装一个名为 `librtprocess` 的 Python package，并且它必须能直接处理 TorchISP 的内存 tensor 数据转换出的 2D Bayer mosaic。TorchISP 期望该 package 暴露以下函数：
+
+```python
+amaze_demosaic(mosaic, bayer_pattern, max_value)
+rcd_demosaic(mosaic, bayer_pattern, max_value)
+```
+
+TorchISP 的输入不是 DNG/ARW/NEF 等 RAW 文件容器，因此这里不会假设有 RAW 文件路径，也不会调用 RawTherapee 去打开文件。如果没有安装这个可选 binding，请求 `amaze` 或 `rcd` 会抛出清晰错误，而不是静默退回 OpenCV。若能接受 OpenCV Edge-Aware 的质量，请显式使用 `demosaic_mode="opencv_ea"`。
+
+
 ## Inverse ISP
 ```python
 import torch
