@@ -32,7 +32,7 @@ class SimpleCCM(torch.nn.Module):
 
         # Permute to (N, H, W, 3) for matrix multiplication
         rgb = inp_rgb.permute(0, 2, 3, 1)
-        ccm_tensor = self.ccm.transpose(0, 1).to(inp_rgb.device)
+        ccm_tensor = self.ccm.transpose(0, 1).to(device=inp_rgb.device, dtype=inp_rgb.dtype)
 
         # Apply CCM
         rgb = torch.matmul(rgb, ccm_tensor)

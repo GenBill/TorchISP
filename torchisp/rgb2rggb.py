@@ -24,7 +24,9 @@ class RGB2RGGB(nn.Module):
 
     def seq_rgb_2_rggb(self, batch_linear_rgb: torch.Tensor):
         # Apply inverse CCM using batch matrix multiplication
-        batch_linear_rgb = torch.matmul(batch_linear_rgb.permute(0, 2, 3, 1), self.ccm_inv.T).permute(0, 3, 1, 2)
+        ccm_inv = self.ccm_inv.to(device=batch_linear_rgb.device, dtype=batch_linear_rgb.dtype)
+        rgb_gain = self.rgb_gain.to(device=batch_linear_rgb.device, dtype=batch_linear_rgb.dtype)
+        batch_linear_rgb = torch.matmul(batch_linear_rgb.permute(0, 2, 3, 1), ccm_inv.T).permute(0, 3, 1, 2)
         batch_linear_rgb = batch_linear_rgb.clamp(min=NUMERIC_FLOOR)
 
         batch_linear_rgb = F.interpolate(batch_linear_rgb, scale_factor=2.0, mode='bilinear')
@@ -36,10 +38,10 @@ class RGB2RGGB(nn.Module):
         dx, dy = np.random.randint(0, scale, size=2)
         
         # Extract RGGB channels
-        R = batch_linear_rgb[:, 0:1, dx::stride, dy::stride] / self.rgb_gain[0]
-        Gr = batch_linear_rgb[:, 1:2, dx::stride, dy+scale::stride] / self.rgb_gain[1]
-        Gb = batch_linear_rgb[:, 1:2, dx+scale::stride, dy::stride] / self.rgb_gain[1]
-        B = batch_linear_rgb[:, 2:, dx+scale::stride, dy+scale::stride] / self.rgb_gain[2]
+        R = batch_linear_rgb[:, 0:1, dx::stride, dy::stride] / rgb_gain[0]
+        Gr = batch_linear_rgb[:, 1:2, dx::stride, dy+scale::stride] / rgb_gain[1]
+        Gb = batch_linear_rgb[:, 1:2, dx+scale::stride, dy::stride] / rgb_gain[1]
+        B = batch_linear_rgb[:, 2:, dx+scale::stride, dy+scale::stride] / rgb_gain[2]
         
         # Concatenate along channel dimension to form RGGB image
         rggb = torch.cat((R, Gr, Gb, B), dim=1)

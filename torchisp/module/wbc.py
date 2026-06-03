@@ -9,6 +9,18 @@ class BasicWB(torch.nn.Module):
     def get_wbgain(self, inp_raw: torch.Tensor) -> tuple:
         return 2.0, 2.0
     
+    def _gain_for_channel(self, gain, channel: torch.Tensor):
+        if not torch.is_tensor(gain):
+            return gain
+        gain = gain.to(device=channel.device, dtype=channel.dtype)
+        if gain.dim() == 1:
+            if gain.numel() != channel.size(0):
+                raise ValueError(
+                    f"WB gain batch size {gain.numel()} does not match RGGB batch size {channel.size(0)}"
+                )
+            return gain.view(-1, 1, 1)
+        return gain
+
     def forward(self, rggb, r_gain=None, b_gain=None):
         if r_gain is None or b_gain is None:
             # with torch.no_grad(): 
@@ -16,8 +28,10 @@ class BasicWB(torch.nn.Module):
             r_gain, b_gain = self.get_wbgain(rggb)
         
         rggb2 = rggb.clone()
-        rggb2[:, 0, :, :] = r_gain * rggb[:, 0, :, :]
-        rggb2[:, 3, :, :] = b_gain * rggb[:, 3, :, :]
+        r = rggb[:, 0, :, :]
+        b = rggb[:, 3, :, :]
+        rggb2[:, 0, :, :] = self._gain_for_channel(r_gain, r) * r
+        rggb2[:, 3, :, :] = self._gain_for_channel(b_gain, b) * b
         return rggb2
 
 
