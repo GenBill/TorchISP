@@ -49,6 +49,34 @@ rgb_img = rggb2rgb(rggb_img)
 print(rgb_img.shape)
 ```
 
+
+## Demosaic modes
+
+TorchISP supports multiple demosaic modes through the `ISP` pipeline. The input remains the existing packed 4-channel Bayer tensor format. For the default `bayer_pattern="RGGB"`, channels are interpreted as `R, G1, G2, B` in row-major 2x2 tile order.
+
+- `debayer5x5`: default PyTorch demosaic backend. This preserves the original behavior and remains differentiable.
+- `amaze`: high-quality display-oriented AMaZE demosaic backend. This mode is intended for visual preview and presentation images and requires an optional tensor-capable RawTherapee/librtprocess Python binding. TorchISP does not silently fall back to OpenCV when this mode is requested.
+- `rcd`: optional high-quality RCD demosaic backend. Like `amaze`, this requires an optional tensor-capable librtprocess binding.
+- `opencv_ea`: optional OpenCV Edge-Aware fallback backend. Install `opencv-python` or `opencv-python-headless` to use it.
+
+The default mode remains `debayer5x5`, so existing code using `ISP(...)` is unchanged.
+
+```python
+from torchisp import ISP
+
+# Default behavior, same as before
+isp = ISP()
+
+# Explicit default PyTorch backend
+isp = ISP(demosaic_mode="debayer5x5")
+
+# High-quality preview backend, if a compatible librtprocess binding is installed
+isp = ISP(demosaic_mode="amaze")
+
+# Optional OpenCV Edge-Aware fallback
+isp = ISP(demosaic_mode="opencv_ea")
+```
+
 ## Inverse ISP
 ```python
 import torch
